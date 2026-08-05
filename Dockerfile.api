@@ -1,0 +1,61 @@
+# ─── Stage 1: Build ─────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root manifest
+COPY package.json package-lock.json ./
+
+# Copy workspace package manifests first (for layer caching)
+COPY packages/types/package.json ./packages/types/
+COPY packages/lib/package.json ./packages/lib/
+COPY packages/database/package.json ./packages/database/
+COPY packages/ai/package.json ./packages/ai/
+COPY packages/playwright/package.json ./packages/playwright/
+COPY apps/api/package.json ./apps/api/
+
+# Install all workspace dependencies
+RUN npm ci --workspaces --include-workspace-root
+
+# Copy source code
+COPY packages/ ./packages/
+COPY apps/api/ ./apps/api/
+
+# Install Playwright browser
+RUN npx playwright install chromium --with-deps
+
+# Build the API
+RUN npm run build --workspace=apps/api
+
+# ─── Stage 2: Production ────────────────────────────
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Install Playwright dependencies
+RUN apk add --no-cache \
+  chromium \
+  nss \
+  freetype \
+  harfbuzz \
+  ca-certificates \
+  ttf-freefont
+
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+# Copy workspace node_modules
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy compiled API
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+
+# Copy shared packages (compiled output if needed, otherwise src)
+COPY --from=builder /app/packages ./packages
+
+WORKDIR /app/apps/api
+
+EXPOSE 4000
+
+CMD ["node", "dist/index.js"]

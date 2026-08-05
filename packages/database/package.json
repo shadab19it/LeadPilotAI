@@ -1,0 +1,12 @@
+{
+  "name": "@leadpilot/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@leadpilot/lib": "*",
+    "@leadpilot/types": "*",
+    "mongoose": "^8.4.0"
+  }
+}

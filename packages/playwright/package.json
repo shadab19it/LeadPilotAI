@@ -1,0 +1,13 @@
+{
+  "name": "@leadpilot/playwright",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@leadpilot/ai": "*",
+    "@leadpilot/lib": "*",
+    "@leadpilot/types": "*",
+    "playwright": "^1.44.0"
+  }
+}
